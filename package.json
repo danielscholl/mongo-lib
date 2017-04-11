@@ -1,0 +1,23 @@
+{
+  "name": "mongo-lib",
+  "author": "Daniel Scholl",
+  "description": "A light wrapper for MongoDB",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "tape test/*.spec.js",
+    "watch": "watch \"npm run -s test\" .",
+    "mongo:start": "docker run -it -d -p 27017:27017 --name mongo mongo mongod --rest --httpinterface --smallfiles",
+    "mongo:stop": "docker rm -f mongo"
+  },
+  "main": "../lib/db",
+  "dependencies": {
+    "async": "^2.3.0",
+    "mongodb": "^2.2.25"
+  },
+  "devDependencies": {
+    "eslint": "^3.19.0",
+    "tape": "^4.6.3",
+    "watch": "^1.0.2"
+  }
+}
