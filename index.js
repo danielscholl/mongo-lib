@@ -1,4 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
+const Database = require('mongodb').Db;
+const Server = require('mongodb').Server; 
 const assert = require("assert");
 const async = require("async");
 
@@ -11,7 +13,12 @@ const Client = function () {
 
   const connect = function connect (args, next) {
     config = new Config(args);
+    openConnection((err, result) => {
+      next(err, result);
+    });
+  };
 
+  const openConnection = function openConnection (next) {
     MongoClient.connect(config.url(), (err, db) => {
       assert.equal(null, err);
 
@@ -26,24 +33,25 @@ const Client = function () {
         next (err, self);
       });
     });
-  };
+  }
 
   const install = function install (tables, next){
     assert.ok(tables && tables.length > 0, "Be sure to set the tables array on the config");
+    async.each(tables, (item, callback) => { // Create a Collection in Database
+      self.db.createCollection(item, (err) => {
+        assert.ok(err === null, err);
 
-    self.db.db(config.db); // Create the Database
-      async.each(tables, (item, callback) => { // Create a Collection in Database
-        self.db.createCollection(item, (err) => {
-          assert.ok(err === null, err);
-
-          callback(err, err === null);
+        callback(err, err === null);
+      });
+    }, (err) => { // When completed Check Errors and Close DB
+        assert.ok(err === null, err);
+        self.close(() =>{
+          openConnection((err, result) => {
+            next(err, result);
+          });
         });
-      }, (err) => { // When completed Check Errors and Close DB
-          assert.ok(err === null, err);
-
-          next(err, err === null);
-        }
-      );
+      }
+    );
   };
 
   const dropDb = function dropDb (dbName, next) {
