@@ -1,15 +1,32 @@
 const MongoClient = require('mongodb').MongoClient;
 const Database = require('mongodb').Db;
-const Server = require('mongodb').Server; 
-const assert = require("assert");
-const async = require("async");
+const Server = require('mongodb').Server;
+const assert = require('assert');
+const async = require('async');
 
 const Config = require('./lib/models').Config;
-const Collection = require("./lib/collection");
+const Collection = require('./lib/collection');
 
 const Client = function () {
   let self = this;
   let config, db;
+
+  const openConnection = function openConnection (next) {
+    MongoClient.connect(config.url(), (err, db) => {
+      assert.equal(null, err);
+
+      self.db = db;
+      self.db.collections((err, result) => {
+        if (!err) {
+          const collections = result.filter((collectionName) => collectionName !== 'system.indexes');
+          collections.forEach(row => {
+            self[row.collectionName] = new Collection(row);
+          });
+        }
+        next(err, self);
+      });
+    });
+  };
 
   const connect = function connect (args, next) {
     config = new Config(args);
@@ -18,25 +35,10 @@ const Client = function () {
     });
   };
 
-  const openConnection = function openConnection (next) {
-    MongoClient.connect(config.url(), (err, db) => {
-      assert.equal(null, err);
 
-      self.db = db;
-      self.db.collections((err, result) => {
-        if(!err) {
-          const collections = result.filter((collectionName) => collectionName !== 'system.indexes');
-          collections.forEach(row => {
-            self[row.collectionName] = new Collection(row);
-          });
-        }
-        next (err, self);
-      });
-    });
-  }
 
   const install = function install (tables, next){
-    assert.ok(tables && tables.length > 0, "Be sure to set the tables array on the config");
+    assert.ok(tables && tables.length > 0, 'Be sure to set the tables array on the config');
     async.each(tables, (item, callback) => { // Create a Collection in Database
       self.db.createCollection(item, (err) => {
         assert.ok(err === null, err);
